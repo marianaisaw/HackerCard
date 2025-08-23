@@ -95,13 +95,6 @@ npm start
 
 ## 🔐 Authentication
 
-### Security Best Practices
-
-- **Environment Variables**: All API keys are stored in environment variables
-- **No Hardcoded Secrets**: The codebase contains no hardcoded API keys or secrets
-- **Gitignore Protection**: Sensitive files are automatically excluded from version control
-- **Example Config**: Use `config.example.js` as a template for your configuration
-
 ### Supported Providers
 
 - **Google OAuth**: Sign in with Google account
@@ -117,16 +110,10 @@ npm start
 
 2. **Environment Variables**
 
-   Create a `.env` file in the root directory with your Supabase credentials:
-   
    ```bash
-   # Copy config.example.js to config.js and fill in your values
-   # Or create a .env file with:
    REACT_APP_SUPABASE_URL=your_supabase_url
    REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
-   
-   **⚠️ Important**: Never commit your `.env` file to version control. The `.gitignore` file is already configured to exclude it.
 
 3. **Database Setup**
    - Run the `database_setup.sql` script in Supabase SQL Editor
@@ -268,4 +255,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Built with ❤️ for the hackathon community**
 
 _Transform your hackathon finances with HackerCard - where innovation meets financial control._
-

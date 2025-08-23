@@ -47,6 +47,29 @@ const AdminDashboard = () => {
   const [createdHackathons, setCreatedHackathons] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Function to generate a random hackathon code
+  const generateHackathonCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  // Function to copy hackathon code to clipboard
+  const copyHackathonCode = async (code) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setSuccessMessage(`Hackathon code "${code}" copied to clipboard!`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('Failed to copy code:', err);
+      setSuccessMessage('Failed to copy code to clipboard');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -79,39 +102,70 @@ const AdminDashboard = () => {
     setSponsors([]);
   };
 
-  const handleCreateHackathon = () => {
+  const handleCreateHackathon = async () => {
     if (!hackathonName.trim()) {
       alert('Please enter a hackathon name');
       return;
     }
 
-    const newHackathon = {
-      id: Date.now(), // Simple ID for demo purposes
-      name: hackathonName,
-      budget: initialBudget,
-      maxMembersPerTeam: maxMembersPerTeam,
-      sponsors: [...sponsors],
-      createdAt: new Date().toLocaleDateString(),
-      status: 'Active',
-      teamsCount: 0,
-      totalMembers: 0
-    };
+    try {
+      const hackathonCode = generateHackathonCode();
 
-    console.log('Creating hackathon:', newHackathon);
-    
-    // Add to the list of created hackathons
-    setCreatedHackathons(prev => [newHackathon, ...prev]);
-    
-    // Show success message
-    setSuccessMessage(`Hackathon "${hackathonName}" created successfully!`);
-    setTimeout(() => setSuccessMessage(''), 5000); // Clear after 5 seconds
-    
-    // Close modal and reset form
-    setShowCreateTeam(false);
-    setHackathonName('');
-    setInitialBudget(500);
-    setMaxMembersPerTeam(4);
-    setSponsors([]);
+      // Insert hackathon into database
+      const { data: newHackathon, error } = await supabase
+        .from('hackathons')
+        .insert([
+          {
+            name: hackathonName,
+            code: hackathonCode,
+            budget: initialBudget,
+            max_members_per_team: maxMembersPerTeam,
+            sponsors: [...sponsors],
+            status: 'active',
+            created_by: (await supabase.auth.getUser()).data.user?.id
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating hackathon:', error);
+        setSuccessMessage(`Failed to create hackathon: ${error.message}`);
+        setTimeout(() => setSuccessMessage(''), 5000);
+        return;
+      }
+
+      console.log('Hackathon created successfully:', newHackathon);
+      
+      // Add to the list of created hackathons
+      setCreatedHackathons(prev => [{
+        id: newHackathon.id,
+        name: newHackathon.name,
+        code: newHackathon.code,
+        budget: newHackathon.budget,
+        maxMembersPerTeam: newHackathon.max_members_per_team,
+        sponsors: newHackathon.sponsors || [],
+        createdAt: new Date(newHackathon.created_at).toLocaleDateString(),
+        status: newHackathon.status,
+        teamsCount: newHackathon.current_teams_count || 0,
+        totalMembers: newHackathon.current_members_count || 0
+      }, ...prev]);
+      
+      // Show success message with the generated code
+      setSuccessMessage(`Hackathon "${hackathonName}" created successfully! Code: ${hackathonCode}`);
+      setTimeout(() => setSuccessMessage(''), 5000); // Clear after 5 seconds
+      
+      // Close modal and reset form
+      setShowCreateTeam(false);
+      setHackathonName('');
+      setInitialBudget(500);
+      setMaxMembersPerTeam(4);
+      setSponsors([]);
+    } catch (error) {
+      console.error('Error creating hackathon:', error);
+      setSuccessMessage(`Failed to create hackathon: ${error.message}`);
+      setTimeout(() => setSuccessMessage(''), 5000);
+    }
   };
 
   const handleCloseModal = () => {
@@ -121,6 +175,39 @@ const AdminDashboard = () => {
     setInitialBudget(500);
     setMaxMembersPerTeam(4);
     setSponsors([]);
+  };
+
+  // Function to fetch hackathons from database
+  const fetchHackathons = async () => {
+    try {
+      const { data: hackathons, error } = await supabase
+        .from('hackathon_stats')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching hackathons:', error);
+        return;
+      }
+
+      // Transform database data to match component state
+      const transformedHackathons = hackathons.map(hackathon => ({
+        id: hackathon.id,
+        name: hackathon.name,
+        code: hackathon.code,
+        budget: hackathon.budget,
+        maxMembersPerTeam: hackathon.max_members_per_team,
+        sponsors: hackathon.sponsors || [],
+        createdAt: new Date(hackathon.created_at).toLocaleDateString(),
+        status: hackathon.status,
+        teamsCount: hackathon.current_teams_count || 0,
+        totalMembers: hackathon.current_members_count || 0
+      }));
+
+      setCreatedHackathons(transformedHackathons);
+    } catch (error) {
+      console.error('Error fetching hackathons:', error);
+    }
   };
 
   // Mock data
@@ -187,6 +274,9 @@ const AdminDashboard = () => {
         status: "completed"
       }
     ]);
+
+    // Fetch hackathons from database
+    fetchHackathons();
   }, []);
 
   const getBudgetPercentage = (spent, budget) => {
@@ -452,7 +542,18 @@ const AdminDashboard = () => {
         {/* Created Hackathons Section */}
         {createdHackathons.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Created Hackathons</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Created Hackathons</h3>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={fetchHackathons}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all flex items-center space-x-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Refresh</span>
+              </motion.button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {createdHackathons.map((hackathon) => (
                 <motion.div
@@ -473,6 +574,19 @@ const AdminDashboard = () => {
                   </div>
                   
                   <div className="space-y-2 mb-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Code:</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">{hackathon.code}</span>
+                        <button
+                          onClick={() => copyHackathonCode(hackathon.code)}
+                          className="text-blue-600 hover:text-blue-800 transition-colors"
+                          title="Copy code to clipboard"
+                        >
+                          📋
+                        </button>
+                      </div>
+                    </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600">Budget:</span>
                       <span className="font-medium text-gray-900">${hackathon.budget.toLocaleString()}</span>

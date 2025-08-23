@@ -64,12 +64,8 @@ const TeamDashboard = () => {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
-  const [newTeamBudget, setNewTeamBudget] = useState(500);
   const [lastCreatedTeamName, setLastCreatedTeamName] = useState('');
   const [currentTeamName, setCurrentTeamName] = useState('');
-  const [maxMembersPerTeam, setMaxMembersPerTeam] = useState(4);
-  const [sponsors, setSponsors] = useState([]);
-  const [newSponsor, setNewSponsor] = useState('');
   const [hackathonCode, setHackathonCode] = useState('');
   const [teamsLoading, setTeamsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -207,52 +203,10 @@ const TeamDashboard = () => {
     });
   };
 
-  const addSponsor = () => {
-    console.log('=== ADD SPONSOR FUNCTION CALLED ===');
-    console.log('addSponsor function called');
-    console.log('newSponsor value:', newSponsor);
-    console.log('current sponsors:', sponsors);
-    console.log('typeof newSponsor:', typeof newSponsor);
-    console.log('newSponsor length:', newSponsor ? newSponsor.length : 'undefined');
-    
-    if (newSponsor && newSponsor.trim() && !sponsors.includes(newSponsor)) {
-      console.log('Adding sponsor:', newSponsor);
-      setSponsors(prev => {
-        const newSponsors = [...prev, newSponsor];
-        console.log('Updated sponsors:', newSponsors);
-        return newSponsors;
-      });
-      setNewSponsor('');
-      // Show success feedback
-      setSuccessMessage(`Added ${newSponsor} as a sponsor!`);
-      setTimeout(() => setSuccessMessage(''), 3000); // Clear after 3 seconds
-    } else if (sponsors.includes(newSponsor)) {
-      console.log('Sponsor already exists:', newSponsor);
-      setErrorMessage(`${newSponsor} is already a sponsor!`);
-      setTimeout(() => setErrorMessage(''), 3000); // Clear after 3 seconds
-    } else {
-      console.log('No sponsor selected or invalid input');
-      console.log('newSponsor is falsy or empty');
-      setErrorMessage('Please select a sponsor from the dropdown');
-      setTimeout(() => setErrorMessage(''), 3000);
-    }
-  };
 
-  const removeSponsor = (index) => {
-    const sponsorToRemove = sponsors[index];
-    console.log('Removing sponsor:', sponsorToRemove);
-    setSponsors(prev => prev.filter((_, i) => i !== index));
-    setSuccessMessage(`Removed ${sponsorToRemove} as a sponsor!`);
-    setTimeout(() => setSuccessMessage(''), 3000); // Clear after 3 seconds
-  };
 
   const createNewTeam = async () => {
     if (selectedUsers.length === 0 || !newTeamName.trim() || !hackathonCode.trim()) {
-      return;
-    }
-
-    if (selectedUsers.length > maxMembersPerTeam) {
-      setErrorMessage(`Team size cannot exceed ${maxMembersPerTeam} members. You have selected ${selectedUsers.length} users.`);
       return;
     }
 
@@ -270,7 +224,7 @@ const TeamDashboard = () => {
           {
             name: newTeamName,
             hackathon_code: hackathonCode,
-            budget: newTeamBudget,
+            budget: 500, // Default budget
             spent: 0,
             final_rank: "In Progress",
             achievements: ["New Team Created"]
@@ -346,7 +300,7 @@ const TeamDashboard = () => {
         }),
         members: selectedUsers.map(u => u.full_name || u.email),
         finalRank: "In Progress",
-        budget: newTeamBudget,
+        budget: 500, // Default budget
         spent: 0,
         achievements: ["New Team Created"]
       };
@@ -367,10 +321,6 @@ const TeamDashboard = () => {
       // Reset form and close modal
       setSelectedUsers([]);
       setNewTeamName('');
-      setNewTeamBudget(500);
-      setMaxMembersPerTeam(4);
-      setSponsors([]);
-      setNewSponsor('');
       setHackathonCode('');
       setShowCreateTeamModal(false);
       setShowUserList(false);
@@ -650,8 +600,7 @@ const TeamDashboard = () => {
     setCurrentTeamName("Quantum Slays");
     setLastCreatedTeamName("Quantum Slays");
     
-    // Add some demo sponsors to show the functionality
-    setSponsors(["OpenAI API", "AWS Credits", "Stripe API"]);
+
 
     setTransactions([
       {
@@ -1210,7 +1159,7 @@ const TeamDashboard = () => {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Select Team Members</h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  Team size: {selectedUsers.length}/{maxMembersPerTeam} members
+                  Team size: {selectedUsers.length} members
                 </p>
               </div>
               <div className="flex items-center space-x-3">
@@ -1530,20 +1479,15 @@ const TeamDashboard = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleUserSelection(user)}
-                        disabled={!selectedUsers.find(u => u.id === user.id) && selectedUsers.length >= maxMembersPerTeam}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                           selectedUsers.find(u => u.id === user.id)
                             ? 'bg-green-600 text-white hover:bg-green-700'
-                            : selectedUsers.length >= maxMembersPerTeam
-                            ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                             : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
                         }`}
                       >
                         {selectedUsers.find(u => u.id === user.id) 
                           ? 'Selected' 
-                          : selectedUsers.length >= maxMembersPerTeam 
-                            ? 'Team Full' 
-                            : 'Add to Team'
+                          : 'Add to Team'
                         }
                       </motion.button>
                           </td>
@@ -1855,7 +1799,7 @@ const TeamDashboard = () => {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Hackathon Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Team Name</label>
                     <input
                       type="text"
                       value={newTeamName}
@@ -1877,134 +1821,11 @@ const TeamDashboard = () => {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Budget For Teams</label>
-                    <input
-                      type="number"
-                      value={newTeamBudget}
-                      onChange={(e) => setNewTeamBudget(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter initial budget amount"
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Max Members Per Team</label>
-                    <input
-                      type="number"
-                      value={maxMembersPerTeam}
-                      onChange={(e) => setMaxMembersPerTeam(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter max team size"
-                      min="1"
-                      max="20"
-                    />
-                  </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      API Sponsors ({sponsors.length} selected)
-                    </label>
-                    <div className="space-y-2">
-                      <div className="space-y-3">
-                        {/* Multi-select checkboxes for sponsors */}
-                        <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                          {apis.map((api) => (
-                            <label key={api.id} className="flex items-center space-x-2 p-2 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={sponsors.includes(api.name)}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    console.log('Adding sponsor:', api.name);
-                                    setSponsors(prev => [...prev, api.name]);
-                                  } else {
-                                    console.log('Removing sponsor:', api.name);
-                                    setSponsors(prev => prev.filter(s => s !== api.name));
-                                  }
-                                }}
-                                className="text-blue-600 focus:ring-blue-500 h-4 w-4"
-                              />
-                              <span className="text-sm text-gray-700">{api.name}</span>
-                            </label>
-                          ))}
-                        </div>
-                        
-                        {/* Quick action buttons */}
-                        <div className="flex space-x-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              console.log('Select All clicked');
-                              const allApiNames = apis.map(api => api.name);
-                              setSponsors(allApiNames);
-                            }}
-                            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                          >
-                            Select All
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              console.log('Clear All clicked');
-                              setSponsors([]);
-                            }}
-                            className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
-                          >
-                            Clear All
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              console.log('Test add button clicked');
-                              const testSponsor = 'Test Sponsor';
-                              console.log('Adding test sponsor:', testSponsor);
-                              setSponsors(prev => [...prev, testSponsor]);
-                            }}
-                            className="px-3 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
-                          >
-                            Test Add
-                          </button>
-                        </div>
-                      </div>
-                      {sponsors.length > 0 && (
-                        <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
-                          {sponsors.map((sponsor, index) => (
-                            <div key={index} className="flex items-center justify-between py-1">
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-700">{sponsor}</span>
-                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                                  ✓ Added
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => removeSponsor(index)}
-                                className="text-red-500 hover:text-red-700 text-sm"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {sponsors.length === 0 && (
-                        <div className="bg-gray-50 rounded-lg p-3 text-center">
-                          <p className="text-sm text-gray-500">No sponsors added yet</p>
-                          <p className="text-xs text-gray-400 mt-1">Select an API provider above and click "Add"</p>
-                        </div>
-                      )}
-                      <p className="text-xs text-gray-500">
-                        Check the boxes below to select API providers as sponsors for your hackathon teams
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Selected Members ({selectedUsers.length}/{maxMembersPerTeam})
+                      Selected Members ({selectedUsers.length})
                     </label>
                     <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
                       {selectedUsers.map((user, index) => (
@@ -2024,11 +1845,6 @@ const TeamDashboard = () => {
                       ))}
                       {selectedUsers.length === 0 && (
                         <p className="text-sm text-gray-500 text-center">No members selected yet</p>
-                      )}
-                      {selectedUsers.length >= maxMembersPerTeam && (
-                        <p className="text-sm text-green-600 text-center font-medium">
-                          ✓ Team size limit reached
-                        </p>
                       )}
                     </div>
                   </div>
