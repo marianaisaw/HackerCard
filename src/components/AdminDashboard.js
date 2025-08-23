@@ -525,7 +525,7 @@ const AdminDashboard = () => {
                   <p className="text-sm text-gray-600">{team.members.join(', ')}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-gray-900">${team.budget - team.spent}</p>
+                  <p className="font-semibold text-gray-900">$100.00</p>
                   <p className="text-xs text-gray-500">remaining</p>
                 </div>
               </div>

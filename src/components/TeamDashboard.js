@@ -72,6 +72,10 @@ const TeamDashboard = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isTeamsRequestActive, setIsTeamsRequestActive] = useState(false);
   const [isUsersRequestActive, setIsUsersRequestActive] = useState(false);
+  const [currentSpending, setCurrentSpending] = useState(0);
+  const [purchasedAPIs, setPurchasedAPIs] = useState([]);
+  const [showAPIKeyModal, setShowAPIKeyModal] = useState(false);
+  const [selectedAPIForKey, setSelectedAPIForKey] = useState(null);
 
   const handleLogout = async () => {
     try {
@@ -793,6 +797,11 @@ const TeamDashboard = () => {
 
   const confirmPurchase = () => {
     if (selectedAPI && team) {
+      // Check if there's enough remaining budget
+      if (currentSpending + selectedAPI.price > 100) {
+        alert('Insufficient budget! You cannot spend more than $100.00');
+        return;
+      }
       const newTransaction = {
         id: transactions.length + 1,
         description: selectedAPI.name,
@@ -808,6 +817,18 @@ const TeamDashboard = () => {
         ...team,
         spent: team.spent + selectedAPI.price
       });
+
+      // Update current spending for display
+      setCurrentSpending(prev => Math.min(prev + selectedAPI.price, 100));
+
+      // Add to purchased APIs with unique API key
+      const purchasedAPI = {
+        ...selectedAPI,
+        purchaseId: Date.now(),
+        apiKey: generateAPIKey(selectedAPI.name),
+        purchaseDate: new Date().toISOString()
+      };
+      setPurchasedAPIs(prev => [...prev, purchasedAPI]);
 
       // Add AI message
       const aiMessage = {
@@ -854,6 +875,18 @@ const TeamDashboard = () => {
 
   const getApiKey = (transactionId) => {
     setExpandedTransaction(expandedTransaction === transactionId ? null : transactionId);
+  };
+
+  const generateAPIKey = (apiName) => {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2);
+    const apiPrefix = apiName.replace(/\s+/g, '').toUpperCase().substring(0, 3);
+    return `${apiPrefix}_${timestamp}_${random}`.toUpperCase();
+  };
+
+  const handleAPIClick = (api) => {
+    setSelectedAPIForKey(api);
+    setShowAPIKeyModal(true);
   };
 
   const copyApiKey = (apiKey) => {
@@ -1560,7 +1593,7 @@ const TeamDashboard = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-white/80 text-sm">Balance</p>
-                      <p className="text-3xl font-bold">${(team.budget - team.spent).toFixed(2)}</p>
+                      <p className="text-3xl font-bold">${(100 - currentSpending).toFixed(2)}</p>
                     </div>
                   </div>
 
@@ -1584,13 +1617,13 @@ const TeamDashboard = () => {
                   <div className="mt-6">
                     <div className="flex justify-between text-sm mb-2">
                       <span>Budget Used</span>
-                      <span>{getBudgetPercentage(team.spent, team.budget)}%</span>
+                      <span>{getBudgetPercentage(currentSpending, 100)}%</span>
                     </div>
                     <div className="w-full bg-white/20 rounded-full h-2">
                       <motion.div 
-                        className={`h-2 rounded-full ${getProgressColor(getBudgetPercentage(team.spent, team.budget))}`}
+                        className={`h-2 rounded-full ${getProgressColor(getBudgetPercentage(currentSpending, 100))}`}
                         initial={{ width: 0 }}
-                        animate={{ width: `${getBudgetPercentage(team.spent, team.budget)}%` }}
+                        animate={{ width: `${getBudgetPercentage(currentSpending, 100)}%` }}
                         transition={{ duration: 1, delay: 0.5 }}
                       />
                     </div>
@@ -1613,7 +1646,7 @@ const TeamDashboard = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">Total Budget</p>
-                    <p className="text-2xl font-bold text-gray-900">${team.budget}</p>
+                    <p className="text-2xl font-bold text-gray-900">$100.00</p>
                   </div>
                 </div>
               </motion.div>
@@ -1630,8 +1663,8 @@ const TeamDashboard = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">Amount Spent</p>
-                    <p className={`text-2xl font-bold ${getBudgetColor(getBudgetPercentage(team.spent, team.budget))}`}>
-                      ${team.spent}
+                    <p className={`text-2xl font-bold ${getBudgetColor(getBudgetPercentage(currentSpending, 100))}`}>
+                      ${currentSpending.toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -1649,7 +1682,7 @@ const TeamDashboard = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">Remaining</p>
-                    <p className="text-2xl font-bold text-gray-900">${(team.budget - team.spent).toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-gray-900">${(100 - currentSpending).toFixed(2)}</p>
                   </div>
                 </div>
               </motion.div>
@@ -1689,77 +1722,56 @@ const TeamDashboard = () => {
               </div>
             </motion.div>
 
-            {/* Recent Transactions */}
+            {/* Purchased APIs */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.6 }}
               className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6"
             >
-              <h3 className="text-xl font-semibold text-gray-900 mb-6">Recent Transactions</h3>
-              <div className="space-y-4">
-                {transactions.map((tx) => (
-                  <motion.div
-                    key={tx.id}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-gray-50 rounded-lg overflow-hidden"
-                  >
-                    <div 
-                      className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-100 transition-colors"
-                      onClick={() => tx.hasApiKey && getApiKey(tx.id)}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <ShoppingCart className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{tx.description}</p>
-                          <p className="text-sm text-gray-600">{tx.company}</p>
-                          <p className="text-xs text-gray-500">{new Date(tx.timestamp).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900">${tx.amount}</p>
-                        <div className="flex items-center space-x-1">
-                          <CheckCircle className="w-3 h-3 text-green-600" />
-                          <span className="text-xs text-green-600">Completed</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* API Key Section */}
-                    {tx.hasApiKey && expandedTransaction === tx.id && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="border-t border-gray-200 bg-white p-4"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-medium text-gray-900">API Key for {tx.company}</h4>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => copyApiKey(tx.apiKey)}
-                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                          >
-                            <span>Copy Key</span>
-                            <CheckCircle className="w-4 h-4" />
-                          </motion.button>
-                        </div>
-                        <div className="bg-gray-100 p-3 rounded-lg">
-                          <code className="text-sm text-gray-800 break-all font-mono">{tx.apiKey}</code>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                          Click "Copy Key" to copy this API key to your clipboard
-                        </p>
-                      </motion.div>
-                    )}
-                  </motion.div>
-                ))}
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Your Purchased APIs</h3>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowPurchaseModal(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-purple-700 transition-all"
+                >
+                  API OFFICE HOURS BASED ON YOUR BUDGET
+                </motion.button>
               </div>
+              {purchasedAPIs.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-4">🛒</div>
+                  <p className="text-gray-600 mb-4">You haven't purchased any APIs yet.</p>
+                  <p className="text-sm text-gray-500">Purchase APIs from the marketplace to get started!</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {purchasedAPIs.map((api) => (
+                    <motion.div
+                      key={api.purchaseId}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all cursor-pointer"
+                      onClick={() => handleAPIClick(api)}
+                    >
+                      <div className="text-3xl mb-3">{api.icon}</div>
+                      <h4 className="font-semibold text-gray-900 mb-2">{api.name}</h4>
+                      <p className="text-sm text-gray-600 mb-3">{api.description}</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">Purchased</span>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="px-3 py-1 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg text-xs font-medium hover:from-green-700 hover:to-blue-700 transition-all"
+                        >
+                          Get API Key
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
@@ -1981,7 +1993,7 @@ const TeamDashboard = () => {
                 </div>
                 <div className="flex justify-between items-center mt-2">
                   <span className="text-gray-600">Remaining Budget:</span>
-                  <span className="font-semibold text-gray-900">${(team.budget - team.spent).toFixed(2)}</span>
+                  <span className="font-semibold text-gray-900">${(100 - currentSpending).toFixed(2)}</span>
                 </div>
               </div>
 
@@ -2000,6 +2012,62 @@ const TeamDashboard = () => {
                 >
                   Confirm Purchase
                 </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* API Key Modal */}
+      <AnimatePresence>
+        {showAPIKeyModal && selectedAPIForKey && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-8 max-w-md w-full"
+            >
+              <div className="text-center mb-6">
+                <div className="text-4xl mb-4">{selectedAPIForKey.icon}</div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{selectedAPIForKey.name}</h3>
+                <p className="text-gray-600">Your Personal API Key</p>
+              </div>
+
+              <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-2">API Key:</p>
+                  <div className="bg-white border border-gray-300 rounded-lg p-3 font-mono text-sm break-all">
+                    {selectedAPIForKey.apiKey}
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">
+                  <p>Purchase Date: {new Date(selectedAPIForKey.purchaseDate).toLocaleDateString()}</p>
+                  <p>Keep this key secure and don't share it with others.</p>
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(selectedAPIForKey.apiKey);
+                    alert('API Key copied to clipboard!');
+                  }}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all"
+                >
+                  Copy to Clipboard
+                </button>
+                <button
+                  onClick={() => setShowAPIKeyModal(false)}
+                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50"
+                >
+                  Close
+                </button>
               </div>
             </motion.div>
           </motion.div>
