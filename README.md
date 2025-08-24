@@ -1,257 +1,179 @@
-# 🚀 HackerCard - Virtual Debit Card Platform for Hackathons
+# HackerCard - Hackathon Finance Platform
 
-> **Award-winning UI design for virtual debit card management built specifically for hackathon organizers and teams.**
+A virtual debit card platform designed specifically for hackathon participants, featuring budget management, API marketplace, and AI-powered coding mentorship.
 
-## ✨ Features
+## Features
 
-### 🎯 **For Hackathon Organizers (Admin Dashboard)**
+### 🏦 Virtual Debit Card
 
-- **Team Management**: Create, edit, and delete teams with instant virtual card generation
-- **Budget Control**: Assign budgets, monitor spending, and freeze cards as needed
-- **Real-time Analytics**: Live transaction monitoring and budget utilization insights
-- **Stripe Integration**: Seamless virtual card creation using Stripe Issuing (test mode)
+- Secure virtual card with customizable budget
+- Real-time spending tracking
+- Budget percentage visualization
+- Transaction history management
 
-### 🎯 **For Teams (Team Dashboard)**
+### 🛒 API Marketplace
 
-- **Modern Virtual Card**: Sleek fintech-style virtual card with masked numbers
-- **Live Budget Tracking**: Real-time budget progress with visual indicators
-- **API Marketplace**: One-click purchases for popular APIs (OpenAI, AWS, etc.)
-- **AI Budget Assistant**: Intelligent spending recommendations and cost optimization
+- Curated selection of popular APIs and services
+- One-click purchases with budget integration
+- API key management and security
+- Purchase history tracking
 
-### 🎨 **Design & UX**
+### 🤖 SixtyFour AI Coding Mentor
 
-- **Award-winning UI**: Modern, responsive design with smooth animations
-- **Framer Motion**: Beautiful micro-interactions and page transitions
-- **Glass Morphism**: Contemporary design elements with backdrop blur effects
-- **Responsive Design**: Optimized for all devices and screen sizes
+- **AI-Powered Coding Assistant**: Get personalized help with your hackathon project
+- **Dual API Integration**: Combines SixtyFour AI for technical research and Gemini for mentorship
+- **Project-Based Learning**: Start by sharing your project idea, then get tailored advice
+- **API Recommendations**: Get suggestions based on your purchased APIs and remaining budget
+- **Real-Time Research**: Access to latest tech trends and documentation
+- **Error Debugging**: Help with code issues and best practices
 
-## 🛠️ Tech Stack
+#### How to Use the AI Mentor:
 
-- **Frontend**: React 18 + React Router
-- **Styling**: Tailwind CSS with custom design tokens
-- **Animations**: Framer Motion for smooth interactions
-- **Icons**: Lucide React for consistent iconography
-- **Build Tool**: Create React App
-- **Authentication**: Supabase Auth with Google & GitHub OAuth
+1. Click "API OFFICE HOURS BASED ON YOUR BUDGET" button
+2. Share your project idea when prompted
+3. Ask questions about APIs, coding, or project structure
+4. Get personalized advice combining research and mentorship
 
-## 🚀 Getting Started
+#### API Integration Details:
+
+- **SixtyFour AI**: Handles technical documentation research and current tech insights
+- **Gemini AI**: Provides encouraging mentorship responses with coding guidance
+- **Real-time Updates**: Both APIs are called for each user question after project setup
+- **Fallback System**: Graceful error handling if APIs are unavailable
+
+### 👥 Team Management
+
+- Create and manage hackathon teams
+- User role management (Admin, Team Member)
+- Team history and achievements tracking
+- Budget allocation per team
+
+### 📊 Dashboard & Analytics
+
+- Comprehensive spending analytics
+- Budget utilization tracking
+- Purchase recommendations
+- Performance metrics
+
+## Getting Started
 
 ### Prerequisites
 
-- Node.js 16+
+- Node.js (v14 or higher)
 - npm or yarn
+- Supabase account for backend services
 
 ### Installation
 
-1. **Clone the repository**
+1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/hackercard.git
-cd hackercard
+git clone <repository-url>
+cd HackerCardTest
 ```
 
-2. **Install dependencies**
+2. Install dependencies:
 
 ```bash
 npm install
 ```
 
-3. **Start the development server**
+3. Set up environment variables:
+
+```bash
+# Create .env file with your API credentials
+REACT_APP_SUPABASE_URL=your_supabase_url
+REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
+REACT_APP_SIXTYFOUR_API_KEY=your_sixtyfour_api_key
+REACT_APP_GEMINI_API_KEY=your_gemini_api_key
+```
+
+4. Start the development server:
 
 ```bash
 npm start
 ```
 
-4. **Open your browser**
-   Navigate to `http://localhost:3000`
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 📱 Available Routes
+## API Keys Required
 
-- **`/`** - Landing page with feature overview
-- **`/admin`** - Admin dashboard for organizers
-- **`/team/:teamId`** - Team dashboard (e.g., `/team/demo`)
+### SixtyFour AI
 
-## 🎨 Design System
+- **Purpose**: Technical documentation research and current tech insights
+- **Key**: Set via `REACT_APP_SIXTYFOUR_API_KEY` environment variable
+- **Usage**: Automatically called for technical research in the AI mentor
 
-### Color Palette
+### Gemini AI
 
-- **Primary**: Blue gradient (#6366f1 → #4f46e5)
-- **Secondary**: Green (#10b981)
-- **Accent**: Orange (#f59e0b)
-- **Neutral**: Gray scale with semantic colors
+- **Purpose**: Mentorship responses and coding guidance
+- **Key**: Set via `REACT_APP_GEMINI_API_KEY` environment variable
+- **Model**: `gemini-2.0-flash`
+- **Usage**: Generates encouraging, supportive mentor responses
 
-### Typography
+## Testing the AI Chatbot
 
-- **Font Family**: Inter (Google Fonts)
-- **Scale**: 12px to 60px with consistent ratios
-- **Weights**: 300, 400, 500, 600, 700, 800
+To verify that both APIs are working:
 
-### Components
+1. **Open the app** and navigate to the Team Dashboard
+2. **Click "API OFFICE HOURS BASED ON YOUR BUDGET"** button
+3. **Share your project idea** (e.g., "I want to build a social media app with AI features")
+4. **Ask follow-up questions** (e.g., "What APIs should I use for user authentication?")
+5. **Check the browser console** for detailed API call logs:
+   - 🚀 SixtyFour API calls
+   - 🤖 Gemini API calls
+   - 📡 Response status and data
+   - ✅ Success confirmations
 
-- **Cards**: Rounded corners with subtle shadows
-- **Buttons**: Gradient backgrounds with hover effects
-- **Modals**: Smooth animations with backdrop blur
-- **Forms**: Clean inputs with focus states
+### Console Logs to Look For:
 
-## 🔐 Authentication
+```
+🚀 Calling SixtyFour API with: {query, projectContext}
+📡 SixtyFour API response status: 200
+✅ SixtyFour API response data: {...}
+📝 SixtyFour API content: "..."
 
-### Supported Providers
-
-- **Google OAuth**: Sign in with Google account
-- **GitHub OAuth**: Sign in with GitHub account
-
-### Setup Instructions
-
-1. **Configure Supabase Auth**
-
-   - Enable Google OAuth in Supabase Dashboard
-   - Enable GitHub OAuth in Supabase Dashboard
-   - Add your OAuth credentials (Client ID & Secret)
-
-2. **Environment Variables**
-
-   ```bash
-   REACT_APP_SUPABASE_URL=your_supabase_url
-   REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-3. **Database Setup**
-   - Run the `database_setup.sql` script in Supabase SQL Editor
-   - This creates the `user_profiles` table for role management
-
-### Authentication Flow
-
-1. User signs in with Google or GitHub
-2. Redirected to role selection (hacker/admin)
-3. Role saved to database
-4. Redirected to appropriate dashboard
-
-## 🔧 Customization
-
-### Adding New APIs
-
-Edit the `apis` array in `TeamDashboard.js`:
-
-```javascript
-const apis = [
-  {
-    id: 7,
-    name: "New API Service",
-    price: 35,
-    description: "Description of the new service",
-    icon: "🚀",
-  },
-];
+🤖 Calling Gemini API with: {userMessage, projectContext, ...}
+📡 Gemini API response status: 200
+✅ Gemini API response data: {...}
+📝 Gemini API content: "..."
 ```
 
-### Modifying Colors
-
-Update CSS custom properties in `src/index.css`:
-
-```css
-:root {
-  --primary: #your-color;
-  --secondary: #your-color;
-  /* ... */
-}
-```
-
-### Adding New Features
-
-The modular component structure makes it easy to add new features:
-
-- Create new components in `src/components/`
-- Add routes in `src/App.js`
-- Update navigation as needed
-
-## 📊 Project Structure
+## Project Structure
 
 ```
 src/
 ├── components/
-│   ├── LandingPage.js      # Hero section & features
-│   ├── AdminDashboard.js   # Organizer management
-│   └── TeamDashboard.js    # Team interface
-├── App.js                  # Main routing
-├── index.js               # Entry point
-└── index.css              # Global styles & tokens
+│   ├── TeamDashboard.js      # Main dashboard with AI chatbot
+│   ├── LandingPage.js        # Landing page
+│   ├── SignIn.js            # Authentication
+│   └── ...                  # Other components
+├── supabaseClient.js        # Database connection
+└── index.js                 # App entry point
 ```
 
-## 🎯 Key Features Explained
+## Technologies Used
 
-### 1. **Virtual Card Generation**
+- **Frontend**: React.js with Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth)
+- **AI Integration**:
+  - SixtyFour AI API for technical research
+  - Google Gemini API for mentorship
+- **UI/UX**: Framer Motion for animations
+- **Styling**: Tailwind CSS with custom gradients
 
-- Instant card creation when teams are added
-- Secure masked numbers for privacy
-- Real-time balance updates
-
-### 2. **AI Budget Assistant**
-
-- Contextual spending advice
-- Cost optimization recommendations
-- Integration with purchase history
-
-### 3. **Real-time Monitoring**
-
-- Live transaction updates
-- Budget utilization tracking
-- Instant notifications and alerts
-
-### 4. **Responsive Design**
-
-- Mobile-first approach
-- Touch-friendly interactions
-- Adaptive layouts for all devices
-
-## 🚀 Deployment
-
-### Build for Production
-
-```bash
-npm run build
-```
-
-### Deploy to Vercel
-
-```bash
-npm install -g vercel
-vercel
-```
-
-### Deploy to Netlify
-
-```bash
-npm install -g netlify-cli
-netlify deploy
-```
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-## 📝 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
-## 🙏 Acknowledgments
+## Support
 
-- **Framer Motion** for smooth animations
-- **Tailwind CSS** for utility-first styling
-- **Lucide React** for beautiful icons
-- **Inter Font** for modern typography
-
-## 📞 Support
-
-- **Email**: support@hackercard.com
-- **Discord**: [Join our community](https://discord.gg/hackercard)
-- **Documentation**: [docs.hackercard.com](https://docs.hackercard.com)
-
----
-
-**Built with ❤️ for the hackathon community**
-
-_Transform your hackathon finances with HackerCard - where innovation meets financial control._
+For support or questions about the AI chatbot integration, please check the console logs for detailed API call information and ensure your API keys are properly configured.

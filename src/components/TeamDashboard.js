@@ -34,7 +34,10 @@ import {
   Mail,
   RefreshCw,
   Search,
-  Filter
+  Filter,
+  Sparkles,
+  Code,
+  Lightbulb
 } from 'lucide-react';
 
 const TeamDashboard = () => {
@@ -76,6 +79,233 @@ const TeamDashboard = () => {
   const [purchasedAPIs, setPurchasedAPIs] = useState([]);
   const [showAPIKeyModal, setShowAPIKeyModal] = useState(false);
   const [selectedAPIForKey, setSelectedAPIForKey] = useState(null);
+  
+  // SixtyFour AI Chatbot States
+  const [showSixtyFourChat, setShowSixtyFourChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [projectIdea, setProjectIdea] = useState('');
+  const [hasAskedProjectIdea, setHasAskedProjectIdea] = useState(false);
+
+  // API Keys - Load from environment variables
+  const SIXTYFOUR_API_KEY = process.env.REACT_APP_SIXTYFOUR_API_KEY;
+  const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY;
+  const DEFAULT_MODEL = 'gemini-2.0-flash';
+
+  // SixtyFour API function for documentation research
+  const callSixtyFourAPI = async (query, projectContext) => {
+    try {
+      console.log('🚀 Calling SixtyFour API with:', { query, projectContext });
+      
+      // Validate API key
+      if (!SIXTYFOUR_API_KEY) {
+        console.log('🔑 SixtyFour API key:', 'No key provided');
+        throw new Error('SixtyFour API key not configured');
+      }
+      
+      const response = await fetch('https://api.sixtyfour.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SIXTYFOUR_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'sixtyfour-1.0',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a technical documentation expert. Research and provide insights about the latest APIs, technologies, and best practices for the project: ${projectContext}. Focus on current trends, documentation, and implementation examples.`
+            },
+            {
+              role: 'user',
+              content: query
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.7
+        })
+      });
+
+      console.log('📡 SixtyFour API response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ SixtyFour API error response:', errorText);
+        throw new Error(`SixtyFour API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ SixtyFour API response data:', data);
+      
+      const content = data.choices[0]?.message?.content || 'No response from SixtyFour API';
+      console.log('📝 SixtyFour API content:', content);
+      
+      return content;
+    } catch (error) {
+      console.error('❌ SixtyFour API error:', error);
+      return `Error calling SixtyFour API: ${error.message}`;
+    }
+  };
+
+  // Gemini API function for mentorship responses
+  const callGeminiAPI = async (userMessage, projectContext, sixtyFourResponse, chatHistory) => {
+    try {
+      console.log('🤖 Calling Gemini API with:', { userMessage, projectContext, sixtyFourResponse: sixtyFourResponse.substring(0, 100) + '...', chatHistoryLength: chatHistory.length });
+      
+      // Validate API key
+      if (!GEMINI_API_KEY) {
+        console.log('🔑 Gemini API key:', 'No key provided');
+        throw new Error('Gemini API key not configured');
+      }
+      
+      // Get user's purchased APIs for context
+      const purchasedAPIsList = purchasedAPIs.map(api => api.name).join(', ');
+      const budgetContext = `User has purchased: ${purchasedAPIsList || 'No APIs purchased yet'}. Budget remaining: $${(100 - currentSpending).toFixed(2)}.`;
+      
+      const requestBody = {
+        contents: [{
+          parts: [{
+            text: `You are a wise coding mentor. Project: ${projectContext}.
+
+Give simple, thoughtful advice. Include:
+- Clear solution
+- Code example if needed
+- Use purchased APIs: ${purchasedAPIsList || 'None'}
+- Budget suggestions: $${(100 - currentSpending).toFixed(2)}
+
+Research: ${sixtyFourResponse}
+
+User: ${userMessage}
+
+Be wise, simple, and helpful.`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 300,
+        }
+      };
+
+      console.log('📤 Gemini API request body:', JSON.stringify(requestBody, null, 2));
+      
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('📡 Gemini API response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Gemini API error response:', errorText);
+        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Gemini API response data:', data);
+      
+      const content = data.candidates[0]?.content?.parts[0]?.text || 'No response from Gemini API';
+      console.log('📝 Gemini API content:', content);
+      
+      return content;
+    } catch (error) {
+      console.error('❌ Gemini API error:', error);
+      return `Error calling Gemini API: ${error.message}`;
+    }
+  };
+
+  // Initialize chat with project idea question
+  const initializeChat = () => {
+    setShowSixtyFourChat(true);
+    setChatMessages([{
+      id: 1,
+      role: 'assistant',
+      content: `Hey there, future hackathon champion! 🚀 I'm your SixtyFour AI office hours mentor, and I'm here to help you build something amazing!
+
+I see that you have purchased: ${purchasedAPIs.length > 0 ? purchasedAPIs.map(api => api.name).join(', ') : 'No APIs purchased yet'}
+
+Before we dive into the code, I'd love to hear about your project idea. What are you building? What's your vision? This will help me give you the most relevant advice and API recommendations based on your budget and goals.
+
+Tell me about your project! 💡`,
+      timestamp: new Date()
+    }]);
+    setHasAskedProjectIdea(false); // Start with false to ask for project idea first
+  };
+
+  // Send chat message
+  const sendChatMessage = async () => {
+    if (!chatInput.trim() || isLoading) return;
+
+    console.log('💬 Sending chat message:', chatInput);
+    console.log('📊 Current state:', { hasAskedProjectIdea, projectIdea, purchasedAPIs: purchasedAPIs.length });
+
+    const userMessage = {
+      id: Date.now(),
+      role: 'user',
+      content: chatInput,
+      timestamp: new Date()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setIsLoading(true);
+
+    try {
+      let response;
+      
+      if (!hasAskedProjectIdea) {
+        // First message - ask for project idea
+        console.log('🎯 First message - setting project idea');
+        setProjectIdea(chatInput);
+        setHasAskedProjectIdea(true);
+        response = "Awesome! I love your project idea! 🎉 Now let me research the latest APIs and technologies that would be perfect for what you're building. I'll also check out some trending project ideas in your space.\n\nWhat specific aspect would you like to work on first? Are you looking for:\n• API recommendations?\n• Code examples?\n• Project structure advice?\n• Help with a specific error?\n\nLet me know what you need most!";
+      } else {
+        // Subsequent messages - use both APIs
+        console.log('🔍 Subsequent message - calling both APIs');
+        try {
+          console.log('📡 Calling SixtyFour API...');
+          const sixtyFourResponse = await callSixtyFourAPI(chatInput, projectIdea);
+          console.log('✅ SixtyFour API completed');
+          
+          const chatHistory = chatMessages.slice(-5); // Last 5 messages for context
+          console.log('📡 Calling Gemini API...');
+          response = await callGeminiAPI(chatInput, projectIdea, sixtyFourResponse, chatHistory);
+          console.log('✅ Gemini API completed');
+        } catch (apiError) {
+          console.error('❌ API call error:', apiError);
+          // Fallback response if APIs fail
+          response = "I'm having trouble connecting to my research tools right now, but I can still help you with general coding advice! 💪\n\nWhat specific coding challenge or question do you have about your project? I'm here to mentor you through it!";
+        }
+      }
+
+      console.log('📝 Final response:', response);
+
+      const assistantMessage = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: response,
+        timestamp: new Date()
+      };
+
+      setChatMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('❌ Chat error:', error);
+      const errorMessage = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: "Oops! Something went wrong on my end. Let me try again - what were you asking about? 🤔\n\nIn the meantime, I can help you with:\n• General coding best practices\n• Project structure advice\n• Debugging tips\n• API integration strategies",
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+      console.log('✅ Chat message processing completed');
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -368,18 +598,18 @@ const TeamDashboard = () => {
   });
 
   const apis = [
-    { id: 1, name: "OpenAI API", price: 20, description: "Access to GPT-4 and other AI models", icon: "🤖" },
-    { id: 2, name: "HuggingFace API", price: 15, description: "HuggingFace inference API", icon: "🤗" },
-    { id: 3, name: "AWS Credits", price: 50, description: "AWS cloud computing credits", icon: "☁️" },
-    { id: 4, name: "Google Cloud", price: 30, description: "Google Cloud Platform credits", icon: "🌐" },
-    { id: 5, name: "Stripe API", price: 25, description: "Payment processing API", icon: "💳" },
-    { id: 6, name: "Twilio API", price: 20, description: "Communication API services", icon: "📱" },
-    { id: 7, name: "Azure Credits", price: 40, description: "Microsoft Azure cloud services", icon: "☁️" },
-    { id: 8, name: "Firebase", price: 18, description: "Google's mobile and web app platform", icon: "🔥" },
-    { id: 9, name: "MongoDB Atlas", price: 22, description: "Cloud database service", icon: "🍃" },
-    { id: 10, name: "SendGrid", price: 16, description: "Email delivery service", icon: "📧" },
-    { id: 11, name: "Algolia", price: 28, description: "Search and discovery API", icon: "🔍" },
-    { id: 12, name: "Mapbox", price: 24, description: "Maps and location services", icon: "🗺️" }
+    { id: 1, name: "SixtyFour API", price: 35, description: "Get your SixtyFour API key for agentic research ", icon: "🚀" },
+    { id: 2, name: "OpenAI API", price: 20, description: "Access to GPT-5 and other AI models", icon: "🤖" },
+    { id: 3, name: "HuggingFace API", price: 15, description: "HuggingFace inference API", icon: "🤗" },
+    { id: 4, name: "AWS Credits", price: 50, description: "AWS cloud computing credits", icon: "☁️" },
+    { id: 5, name: "Google Cloud", price: 30, description: "Google Cloud Platform credits", icon: "🌐" },
+    { id: 6, name: "Stripe API", price: 25, description: "Payment processing API", icon: "💳" },
+    { id: 7, name: "Twilio API", price: 20, description: "Communication API services", icon: "📱" },
+    { id: 8, name: "Azure Credits", price: 40, description: "Microsoft Azure cloud services", icon: "☁️" },
+    { id: 9, name: "Firebase", price: 18, description: "Google's mobile and web app platform", icon: "🔥" },
+    { id: 10, name: "MongoDB Atlas", price: 22, description: "Cloud database service", icon: "🍃" },
+    { id: 11, name: "SendGrid", price: 16, description: "Email delivery service", icon: "📧" },
+    { id: 12, name: "Apify API", price: 28, description: "Powerful web scraping and automation API", icon: "🔍" }
   ];
 
   const fetchTeamsHistory = async (retryCount = 0) => {
@@ -666,6 +896,9 @@ const TeamDashboard = () => {
         timestamp: new Date()
       }
     ]);
+
+    // Start with empty purchased APIs - they will be populated when user makes purchases
+    setPurchasedAPIs([]);
   }, [teamId]);
 
   // Effect to update team name and card holder when teams history changes
@@ -1580,21 +1813,37 @@ const TeamDashboard = () => {
                 transition={{ duration: 0.6 }}
                 className="relative"
               >
-                <div className="bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 rounded-3xl p-8 text-white shadow-2xl">
+                <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden max-w-2xl mx-auto">
+                  {/* Light accent overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-orange-500/5 opacity-30"></div>
+                  {/* Subtle light reflection */}
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-orange-400/20 to-transparent"></div>
+                  <div className="absolute top-8 left-8 w-32 h-32 bg-orange-400/10 rounded-full blur-3xl"></div>
                   <div className="flex justify-between items-start mb-8">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                        <CreditCard className="w-7 h-7" />
+                      <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center border border-orange-400/30">
+                        <CreditCard className="w-7 h-7 text-orange-300" />
                       </div>
                       <div>
                         <p className="text-white/80 text-sm">HackerCard</p>
                         <p className="font-semibold">Virtual Debit Card</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-white/80 text-sm">Balance</p>
-                      <p className="text-3xl font-bold">${(100 - currentSpending).toFixed(2)}</p>
-                    </div>
+                  </div>
+                  
+                  {/* Balance Section - Moved down to avoid logo overlap */}
+                  <div className="text-right mb-8">
+                    <p className="text-white/80 text-sm">Balance</p>
+                    <p className="text-3xl font-bold">${(100 - currentSpending).toFixed(2)}</p>
+                  </div>
+                  
+                  {/* Brex Logo */}
+                  <div className="absolute top-6 right-6">
+                    <img 
+                      src="/brex.png" 
+                      alt="Brex" 
+                      className="h-8 w-auto opacity-80"
+                    />
                   </div>
 
                   <div className="mb-8">
@@ -1619,9 +1868,9 @@ const TeamDashboard = () => {
                       <span>Budget Used</span>
                       <span>{getBudgetPercentage(currentSpending, 100)}%</span>
                     </div>
-                    <div className="w-full bg-white/20 rounded-full h-2">
+                    <div className="w-full bg-gray-700/50 rounded-full h-2">
                       <motion.div 
-                        className={`h-2 rounded-full ${getProgressColor(getBudgetPercentage(currentSpending, 100))}`}
+                        className={`h-2 rounded-full bg-gradient-to-r from-orange-400 to-orange-500 shadow-lg`}
                         initial={{ width: 0 }}
                         animate={{ width: `${getBudgetPercentage(currentSpending, 100)}%` }}
                         transition={{ duration: 1, delay: 0.5 }}
@@ -1734,10 +1983,11 @@ const TeamDashboard = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowPurchaseModal(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-purple-700 transition-all"
+                  onClick={initializeChat}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-purple-700 transition-all flex items-center space-x-2"
                 >
-                  API OFFICE HOURS BASED ON YOUR BUDGET
+                  <Sparkles className="w-4 h-4" />
+                  <span>API OFFICE HOURS BASED ON YOUR BUDGET</span>
                 </motion.button>
               </div>
               {purchasedAPIs.length === 0 ? (
@@ -1773,6 +2023,50 @@ const TeamDashboard = () => {
                 </div>
               )}
             </motion.div>
+
+            {/* Budget and API Status Bar */}
+            <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-3 border-b border-gray-200">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <DollarSign className="w-4 h-4 text-green-600" />
+                    <span className="text-gray-700">
+                      Budget: <span className="font-semibold">${(100 - currentSpending).toFixed(2)}</span> remaining
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Code className="w-4 h-4 text-blue-600" />
+                    <span className="text-gray-700">
+                      APIs: <span className="font-semibold">{purchasedAPIs.length}</span> purchased
+                    </span>
+                  </div>
+                </div>
+                {purchasedAPIs.length > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-600 text-xs">Available APIs:</span>
+                    <div className="flex space-x-1">
+                      {purchasedAPIs.slice(0, 3).map((api, index) => (
+                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                          {api.name}
+                        </span>
+                      ))}
+                      {purchasedAPIs.length > 3 && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                          +{purchasedAPIs.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Debug Info */}
+              <div className="mt-2 text-xs text-gray-500">
+                <span className="mr-4">🔑 SixtyFour: {SIXTYFOUR_API_KEY ? '✓ Configured' : '✗ Missing'}</span>
+                <span className="mr-4">🤖 Gemini: {GEMINI_API_KEY ? '✓ Configured' : '✗ Missing'}</span>
+                <span>📊 Project: {projectIdea ? `"${projectIdea.substring(0, 30)}..."` : 'Not set'}</span>
+              </div>
+            </div>
           </motion.div>
         )}
         </AnimatePresence>
@@ -2068,6 +2362,183 @@ const TeamDashboard = () => {
                 >
                   Close
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* SixtyFour AI Chatbot Modal */}
+      <AnimatePresence>
+        {showSixtyFourChat && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden w-full max-w-4xl h-[700px] flex flex-col"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 p-6 text-white">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold">SixtyFour AI Coding Mentor</h2>
+                      <p className="text-white/80 text-sm">Your personal hackathon coding assistant</p>
+                      {projectIdea && (
+                        <p className="text-white/90 text-xs mt-1 font-medium">
+                          🎯 Project: {projectIdea.length > 50 ? projectIdea.substring(0, 50) + '...' : projectIdea}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowSixtyFourChat(false);
+                      // Reset chat state when closing
+                      setChatMessages([]);
+                      setChatInput('');
+                      setProjectIdea('');
+                      setHasAskedProjectIdea(false);
+                    }}
+                    className="text-white/80 hover:text-white transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Chat Messages */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+                {chatMessages.map((message) => (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-3xl px-4 py-3 rounded-2xl ${
+                        message.role === 'user'
+                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                          : 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                      }`}
+                    >
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {message.content}
+                      </div>
+                      <div className={`text-xs mt-2 ${
+                        message.role === 'user' ? 'text-white/70' : 'text-gray-500'
+                      }`}>
+                        {message.timestamp.toLocaleTimeString()}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+                
+                {isLoading && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex justify-start"
+                  >
+                    <div className="bg-white text-gray-900 shadow-sm border border-gray-200 px-4 py-3 rounded-2xl">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                        <span className="text-sm text-gray-600">Thinking...</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Chat Input */}
+              <div className="p-6 bg-white border-t border-gray-200">
+                <div className="flex space-x-3">
+                  <div className="flex-1 relative">
+                    <textarea
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          sendChatMessage();
+                        }
+                      }}
+                      placeholder="Ask me anything about your project, APIs, or coding challenges..."
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                      rows="2"
+                      disabled={isLoading}
+                    />
+                    <div className="absolute right-3 bottom-3 text-xs text-gray-400">
+                      Press Enter to send, Shift+Enter for new line
+                    </div>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={sendChatMessage}
+                    disabled={!chatInput.trim() || isLoading}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-pink-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all flex items-center space-x-2"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>Send</span>
+                  </motion.button>
+                </div>
+                
+                {/* Quick Action Buttons */}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setChatInput("I need help with API integration")}
+                    className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200 transition-colors"
+                  >
+                    <Code className="w-3 h-3 inline mr-1" />
+                    API Help
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setChatInput("Suggest some trendy project ideas")}
+                    className="px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm hover:bg-green-200 transition-colors"
+                  >
+                    <Lightbulb className="w-3 h-3 inline mr-1" />
+                    Project Ideas
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setChatInput("Help me debug this error")}
+                    className="px-3 py-2 bg-red-100 text-red-700 rounded-lg text-sm hover:bg-red-200 transition-colors"
+                  >
+                    <Zap className="w-3 h-3 inline mr-1" />
+                    Debug Help
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      console.log('🧪 Test button clicked - testing API calls');
+                      setChatInput("Test API call - I want to build a social media app with AI features");
+                    }}
+                    className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm hover:bg-purple-200 transition-colors"
+                  >
+                    🧪 Test APIs
+                  </motion.button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
